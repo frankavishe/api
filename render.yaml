@@ -60,11 +60,12 @@ services:
       - key: WEB_ORIGIN
         sync: false
       # AWS S3 (no S3_ENDPOINT: the SDK uses the regional AWS endpoint).
-      # Bucket in the same region as the Render services; keys from a least-privilege IAM user.
+      # S3_REGION must match the bucket's region (else PermanentRedirect); keys from a
+      # least-privilege IAM user, entered in the Render dashboard only.
       - key: S3_REGION
-        value: eu-central-1
+        value: eu-north-1
       - key: S3_BUCKET_AVATARS
-        sync: false
+        value: chat-avatars-frankavishe
       - key: S3_ACCESS_KEY
         sync: false
       - key: S3_SECRET_KEY

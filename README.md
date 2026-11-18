@@ -58,8 +58,9 @@ Free web services sleep after 15 minutes idle, so the first request takes about 
 ### Steps
 
 1. **AWS S3** (avatars):
-   - In S3, create a bucket in **`eu-central-1` (Frankfurt)**, the same region as the Render
-     services. Bucket names are global, so pick a unique one such as `chat-avatars-<something>`.
+   - In S3, create a bucket (ours: `chat-avatars-frankavishe` in **`eu-north-1`**). Any region
+     works, but `S3_REGION` and `S3_BUCKET_AVATARS` in `render.yaml` must match the bucket.
+     Bucket names are global, so pick a unique one such as `chat-avatars-<something>`.
      Keep **Block all public access** on: avatars are served through the API
      (`GET /v1/avatars/:key`), never directly from S3.
    - In IAM, create a user `chat-api-render` with no console access, and attach this inline policy:
@@ -79,8 +80,8 @@ Free web services sleep after 15 minutes idle, so the first request takes about 
 2. Push this repo and the `web` repo. Render deploys branch `001-foundation-auth`; change
    `branch:` in `render.yaml` when you merge.
 3. In Render, go to **New → Blueprint**, pick this repo, and allow Render access to the `web`
-   repo too. When it asks for the `sync: false` values, enter `S3_BUCKET_AVATARS`,
-   `S3_ACCESS_KEY` and `S3_SECRET_KEY` from step 1. For the
+   repo too. When it asks for the `sync: false` values, enter `S3_ACCESS_KEY` and
+   `S3_SECRET_KEY` from step 1 (never commit them). For the
    URL values, use the expected names, which are usually `https://chat-api.onrender.com` and
    `https://chat-web.onrender.com`. You can correct them later.
 4. After the first deploy, open each service, copy its real `*.onrender.com` URL, and set:
