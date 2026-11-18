@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConditionalModule, ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LoggerModule } from 'nestjs-pino';
 import { type Env, validateEnv } from './config/env.js';
@@ -47,8 +47,9 @@ export const LOG_REDACT_PATHS = [
     CoreModule,
     AuthModule,
     ContactsModule,
-    // Dev-only helper endpoint; never registered in test or production.
-    ...(process.env.NODE_ENV === 'development' ? [DevOtpModule] : []),
+    // Dev-only helper endpoint; never registered in test or production. Checked after
+    // ConfigModule has loaded .env, so NODE_ENV from .env counts (not just the shell's).
+    ConditionalModule.registerWhen(DevOtpModule, (env) => env.NODE_ENV === 'development'),
   ],
 })
 export class AppModule {}
