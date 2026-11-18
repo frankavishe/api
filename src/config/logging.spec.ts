@@ -52,6 +52,21 @@ describe('env validation', () => {
     expect(() => validateEnv({ ...base, NODE_ENV: 'production' })).toThrow(/SMS_PROVIDER/);
   });
 
+  it('allows the log SMS sender in production only with the explicit staging flag', () => {
+    expect(() => validateEnv({ ...base, NODE_ENV: 'production', ALLOW_LOG_SMS: 'false' })).toThrow(
+      /SMS_PROVIDER/,
+    );
+    expect(validateEnv({ ...base, NODE_ENV: 'production', ALLOW_LOG_SMS: 'true' })).toMatchObject({
+      SMS_PROVIDER: 'log',
+      ALLOW_LOG_SMS: true,
+    });
+  });
+
+  it('parses TRUST_PROXY as a hop count when numeric', () => {
+    expect(validateEnv({ ...base, TRUST_PROXY: '1' }).TRUST_PROXY).toBe(1);
+    expect(validateEnv(base).TRUST_PROXY).toBe('loopback');
+  });
+
   it('refuses short JWT secrets', () => {
     expect(() => validateEnv({ ...base, JWT_SECRET: 'short' })).toThrow(/JWT_SECRET/);
   });

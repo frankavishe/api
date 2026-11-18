@@ -1,0 +1,95 @@
+# Render Blueprint — free-tier staging/demo deploy of the API + web app.
+# Docs: https://render.com/docs/blueprint-spec
+#
+# Notes:
+# - All services share one region so the internal Postgres/Key Value URLs resolve.
+# - Free web services sleep after 15 min idle (~1 min cold start); free Postgres expires after 30 days.
+# - `sync: false` values are prompted for on first Blueprint creation; fill the ones that depend
+#   on the generated *.onrender.com URLs after the first deploy (see README → Deploy to Render).
+
+databases:
+  - name: chat-db
+    plan: free
+    region: frankfurt
+    databaseName: chat
+    user: chat
+    ipAllowList: [] # internal connections only
+
+services:
+  - type: keyvalue
+    name: chat-redis
+    plan: free
+    region: frankfurt
+    ipAllowList: [] # internal connections only
+    maxmemoryPolicy: noeviction # holds OTP/rate-limit/session state; don't silently evict
+
+  - type: web
+    name: chat-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    branch: 001-foundation-auth
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: chat-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: chat-redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OTP_PEPPER
+        generateValue: true
+      # Staging only: OTP codes are written to the chat-api logs instead of sent by SMS.
+      - key: ALLOW_LOG_SMS
+        value: "true"
+      # One hop: Render's load balancer.
+      - key: TRUST_PROXY
+        value: "1"
+      # e.g. https://chat-api.onrender.com
+      - key: PUBLIC_URL
+        sync: false
+      # e.g. https://chat-web.onrender.com
+      - key: WEB_ORIGIN
+        sync: false
+      # Cloudflare R2: https://<account-id>.r2.cloudflarestorage.com
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_REGION
+        value: auto
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_BUCKET_AVATARS
+        value: avatars
+
+  - type: web
+    name: chat-web
+    runtime: node
+    plan: free
+    region: frankfurt
+    repo: https://github.com/frankavishe/web
+    branch: 001-foundation-auth
+    buildCommand: npm ci && npm run build
+    startCommand: npx next start -p $PORT
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      # Browser calls go to same-origin /v1/*, which Next.js rewrites to the API,
+      # so the HttpOnly refresh cookie stays first-party.
+      - key: NEXT_PUBLIC_API_URL
+        value: /v1
+      # e.g. https://chat-api.onrender.com  (rewrite target)
+      - key: API_PROXY_TARGET
+        sync: false
+      # e.g. https://chat-api.onrender.com  (Socket.IO connects directly)
+      - key: NEXT_PUBLIC_REALTIME_URL
+        sync: false
