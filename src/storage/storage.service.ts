@@ -10,16 +10,21 @@ import { Global, Injectable, Module, type OnModuleDestroy } from '@nestjs/common
 import { ConfigService } from '@nestjs/config';
 import type { Env } from '../config/env.js';
 
-/** S3-compatible object storage (MinIO in development). */
+/**
+ * Object storage: AWS S3 in production, MinIO in development and tests.
+ * With S3_ENDPOINT set (MinIO / S3-compatible) requests are path-style; without it the SDK
+ * uses AWS's regional endpoint with virtual-hosted-style requests.
+ */
 @Injectable()
 export class StorageService implements OnModuleDestroy {
   private readonly s3: S3Client;
 
   constructor(config: ConfigService<Env, true>) {
+    const endpoint = config.get('S3_ENDPOINT', { infer: true });
     this.s3 = new S3Client({
-      endpoint: config.get('S3_ENDPOINT', { infer: true }),
+      ...(endpoint ? { endpoint } : {}),
       region: config.get('S3_REGION', { infer: true }),
-      forcePathStyle: true,
+      forcePathStyle: Boolean(endpoint),
       credentials: {
         accessKeyId: config.get('S3_ACCESS_KEY', { infer: true }),
         secretAccessKey: config.get('S3_SECRET_KEY', { infer: true }),

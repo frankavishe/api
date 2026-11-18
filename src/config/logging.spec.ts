@@ -67,6 +67,13 @@ describe('env validation', () => {
     expect(validateEnv(base).TRUST_PROXY).toBe('loopback');
   });
 
+  it('accepts an AWS S3 config without S3_ENDPOINT', () => {
+    const { S3_ENDPOINT: _omit, ...aws } = base;
+    const env = validateEnv({ ...aws, S3_REGION: 'eu-central-1' });
+    expect(env.S3_ENDPOINT).toBeUndefined();
+    expect(env.S3_REGION).toBe('eu-central-1');
+  });
+
   it('refuses short JWT secrets', () => {
     expect(() => validateEnv({ ...base, JWT_SECRET: 'short' })).toThrow(/JWT_SECRET/);
   });

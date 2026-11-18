@@ -57,13 +57,30 @@ Free web services sleep after 15 minutes idle, so the first request takes about 
 
 ### Steps
 
-1. **Cloudflare R2:** create a bucket named `avatars`, then an R2 API token with *Object Read &
-   Write* on it. Note the Access Key ID, the Secret Access Key, and the S3 endpoint
-   `https://<account-id>.r2.cloudflarestorage.com`.
+1. **AWS S3** (avatars):
+   - In S3, create a bucket in **`eu-central-1` (Frankfurt)**, the same region as the Render
+     services. Bucket names are global, so pick a unique one such as `chat-avatars-<something>`.
+     Keep **Block all public access** on: avatars are served through the API
+     (`GET /v1/avatars/:key`), never directly from S3.
+   - In IAM, create a user `chat-api-render` with no console access, and attach this inline policy:
+     ```json
+     {
+       "Version": "2012-10-17",
+       "Statement": [{
+         "Effect": "Allow",
+         "Action": ["s3:PutObject", "s3:GetObject", "s3:DeleteObject"],
+         "Resource": "arn:aws:s3:::<your-bucket>/*"
+       }]
+     }
+     ```
+   - Under **Security credentials → Create access key → Application running outside AWS**, copy
+     the Access key ID and the Secret access key. The secret is shown only once.
+   - `S3_ENDPOINT` is **not** set for AWS: the SDK uses the regional endpoint for `S3_REGION`.
 2. Push this repo and the `web` repo. Render deploys branch `001-foundation-auth`; change
    `branch:` in `render.yaml` when you merge.
 3. In Render, go to **New → Blueprint**, pick this repo, and allow Render access to the `web`
-   repo too. When it asks for the `sync: false` values, enter the R2 values from step 1. For the
+   repo too. When it asks for the `sync: false` values, enter `S3_BUCKET_AVATARS`,
+   `S3_ACCESS_KEY` and `S3_SECRET_KEY` from step 1. For the
    URL values, use the expected names, which are usually `https://chat-api.onrender.com` and
    `https://chat-web.onrender.com`. You can correct them later.
 4. After the first deploy, open each service, copy its real `*.onrender.com` URL, and set:
@@ -79,7 +96,9 @@ Free web services sleep after 15 minutes idle, so the first request takes about 
 - `GET https://<chat-api>.onrender.com/v1/health` returns `{"status":"ok"}`.
 - Sign in on the web app with the code from the API logs. Reload the page; you should still be
   signed in, which shows the refresh cookie works through the proxy.
-- Upload an avatar; the object should appear in the R2 bucket.
+- Upload an avatar; the object should appear in the S3 bucket. `AccessDenied` in the API
+  logs means the IAM policy or bucket name is wrong; `PermanentRedirect` means `S3_REGION` doesn't
+  match the bucket's region.
 
 ## Contract
 

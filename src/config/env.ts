@@ -28,7 +28,8 @@ export const envSchema = z
       .string()
       .default('loopback')
       .transform((v) => (/^\d+$/.test(v) ? Number(v) : v)),
-    S3_ENDPOINT: z.url(),
+    /** Set for MinIO or other S3-compatible services; leave unset for AWS S3 (derived from region). */
+    S3_ENDPOINT: z.url().optional(),
     S3_REGION: z.string().default('us-east-1'),
     S3_ACCESS_KEY: z.string().min(1),
     S3_SECRET_KEY: z.string().min(1),

@@ -59,17 +59,16 @@ services:
       # e.g. https://chat-web.onrender.com
       - key: WEB_ORIGIN
         sync: false
-      # Cloudflare R2: https://<account-id>.r2.cloudflarestorage.com
-      - key: S3_ENDPOINT
-        sync: false
+      # AWS S3 (no S3_ENDPOINT: the SDK uses the regional AWS endpoint).
+      # Bucket in the same region as the Render services; keys from a least-privilege IAM user.
       - key: S3_REGION
-        value: auto
+        value: eu-central-1
+      - key: S3_BUCKET_AVATARS
+        sync: false
       - key: S3_ACCESS_KEY
         sync: false
       - key: S3_SECRET_KEY
         sync: false
-      - key: S3_BUCKET_AVATARS
-        value: avatars
 
   - type: web
     name: chat-web
