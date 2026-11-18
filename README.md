@@ -71,7 +71,8 @@ Free web services sleep after 15 minutes idle, so the first request takes about 
    - `chat-web`: `API_PROXY_TARGET` = API URL, `NEXT_PUBLIC_REALTIME_URL` = API URL
 5. Redeploy **chat-web** with **Manual Deploy → Clear build cache & deploy**. `NEXT_PUBLIC_*`
    values and the rewrite target are baked in at build time.
-6. Mobile: point the app's API base URL at `https://<chat-api>.onrender.com/v1`.
+6. Mobile: build with `--dart-define=API_URL=https://<chat-api>.onrender.com`. Give the origin
+   only; the app adds `/v1` and `/rt` itself.
 
 ### Smoke test
 
