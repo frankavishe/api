@@ -5,6 +5,10 @@ generator client {
   provider     = "prisma-client"
   output       = "../src/generated/prisma"
   moduleFormat = "esm"
+  // Explicit so `prisma generate` emits `.js` import specifiers even when no
+  // tsconfig.json is present (e.g. the Docker build stage runs generate first).
+  importFileExtension = "js"
+  generatedFileExtension = "ts"
 }
 
 datasource db {
