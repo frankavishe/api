@@ -8,6 +8,21 @@ import { DeviceStatusService } from './device-status.service.js';
 
 export const MAX_WEB_DEVICES = 4;
 
+type Tx = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
+
+/**
+ * Deletes a signed-out device's Signal keys and undelivered envelopes (feature 002).
+ * Devices are soft-deleted, so the FK cascades never fire on revoke.
+ */
+export async function purgeDeviceData(tx: Tx, deviceIds: string[]): Promise<void> {
+  if (deviceIds.length === 0) return;
+  const where = { deviceId: { in: deviceIds } };
+  await tx.oneTimePreKey.deleteMany({ where });
+  await tx.signedPreKey.deleteMany({ where });
+  await tx.deviceKeys.deleteMany({ where });
+  await tx.envelope.deleteMany({ where: { recipientDeviceId: { in: deviceIds } } });
+}
+
 export interface Registration {
   user: User;
   device: Device;
@@ -71,7 +86,7 @@ export class DevicesService {
   }
 
   private async addDevice(
-    tx: Parameters<Parameters<PrismaService['$transaction']>[0]>[0],
+    tx: Tx,
     userId: string,
     type: DeviceType,
     name: string,
@@ -89,6 +104,7 @@ export class DevicesService {
         where: { id: { in: toRevoke } },
         data: { revokedAt: new Date(), revokedReason: type === 'android' ? 'replaced' : 'evicted' },
       });
+      await purgeDeviceData(tx, toRevoke);
     }
     const device = await tx.device.create({ data: { id: uuidv7(), userId, type, name } });
     const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
@@ -104,9 +120,13 @@ export class DevicesService {
 
   /** Signs a device out. Idempotent. */
   async revoke(deviceId: string, reason: RevokedReason): Promise<void> {
-    const res = await this.prisma.device.updateMany({
-      where: { id: deviceId, revokedAt: null },
-      data: { revokedAt: new Date(), revokedReason: reason },
+    const res = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.device.updateMany({
+        where: { id: deviceId, revokedAt: null },
+        data: { revokedAt: new Date(), revokedReason: reason },
+      });
+      await purgeDeviceData(tx, [deviceId]);
+      return updated;
     });
     await this.status.markRevoked(deviceId);
     if (res.count > 0) this.realtime.deviceRevoked(deviceId, reason);

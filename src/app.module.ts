@@ -5,7 +5,13 @@ import { LoggerModule } from 'nestjs-pino';
 import { type Env, validateEnv } from './config/env.js';
 import { CoreModule } from './core.module.js';
 import { DevOtpModule } from './auth/sms/sms-sender.js';
-import { AuthModule, ContactsModule } from './feature.modules.js';
+import {
+  AuthModule,
+  ContactsModule,
+  ConversationsModule,
+  KeysModule,
+  MessagesModule,
+} from './feature.modules.js';
 import { HealthModule } from './health.controller.js';
 import { PrismaModule } from './prisma/prisma.service.js';
 import { RedisModule } from './redis/redis.module.js';
@@ -48,6 +54,9 @@ export const LOG_REDACT_PATHS = [
     CoreModule,
     AuthModule,
     ContactsModule,
+    KeysModule,
+    ConversationsModule,
+    MessagesModule,
     HealthModule,
     // Dev-only helper endpoint; never registered in test or production. Checked after
     // ConfigModule has loaded .env, so NODE_ENV from .env counts (not just the shell's).

@@ -13,6 +13,25 @@ addFormats.default(ajv);
 ajv.addFormat('binary', true);
 ajv.addSchema({ $id: 'openapi', components: doc.components });
 
+/** Server→client event payloads from contracts/ws-events.schema.json. */
+const ws = JSON.parse(
+  readFileSync(new URL('../../contracts/ws-events.schema.json', import.meta.url), 'utf8'),
+) as { $id: string };
+ajv.addSchema(ws);
+
+export function expectEvent(event: string, payload: unknown) {
+  const validate = ajv.compile({
+    $ref: `${ws.$id}#/$defs/server-to-client/properties/${encodeURIComponent(event)}`,
+  });
+  if (!validate(payload)) {
+    throw new Error(
+      `Event ${event} does not match ws-events schema:\n` +
+        ajv.errorsText(validate.errors, { separator: '\n' }) +
+        `\npayload: ${JSON.stringify(payload, null, 2)}`,
+    );
+  }
+}
+
 export function expectContract(schemaName: string, body: unknown, opts: { array?: boolean } = {}) {
   const ref = { $ref: `openapi#/components/schemas/${schemaName}` };
   const schema = opts.array ? { type: 'array', items: ref } : ref;
