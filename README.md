@@ -82,9 +82,12 @@ Free web services sleep after 15 minutes idle, so the first request takes about 
 3. In Render, go to **New → Blueprint**, pick this repo, and allow Render access to the `web`
    repo too. When it asks for the `sync: false` values, enter `S3_ACCESS_KEY` and
    `S3_SECRET_KEY` from step 1 (never commit them). For the
-   URL values, use the expected names, which are usually `https://chat-api.onrender.com` and
-   `https://chat-web.onrender.com`. You can correct them later.
-4. After the first deploy, open each service, copy its real `*.onrender.com` URL, and set:
+   URL values, enter `https://chat-api.onrender.com` and `https://chat-web.onrender.com` as
+   placeholders for now.
+4. After the first deploy, open each service, copy its real `*.onrender.com` URL, and set the
+   values below. **Don't skip this step.** These names are usually taken, so Render adds a
+   suffix (e.g. `chat-api-x7k2.onrender.com`). The placeholder then points at someone else's
+   service, and the web proxy fails with `socket hang up`.
    - `chat-api`: `PUBLIC_URL` = API URL, `WEB_ORIGIN` = web URL
    - `chat-web`: `API_PROXY_TARGET` = API URL, `NEXT_PUBLIC_REALTIME_URL` = API URL
 5. Redeploy **chat-web** with **Manual Deploy → Clear build cache & deploy**. `NEXT_PUBLIC_*`
