@@ -15,6 +15,13 @@ export type ErrorCode =
   | 'RATE_LIMITED'
   | 'FILE_TOO_LARGE'
   | 'UNSUPPORTED_MEDIA_TYPE'
+  | 'CONVERSATION_NOT_FOUND'
+  | 'NOT_A_MEMBER'
+  | 'FORBIDDEN'
+  | 'DEVICE_MISMATCH'
+  | 'KEYS_NOT_UPLOADED'
+  | 'GROUP_TOO_LARGE'
+  | 'PAYLOAD_TOO_LARGE'
   | 'INTERNAL';
 
 export interface ErrorBody {
@@ -38,6 +45,12 @@ export class AppError extends HttpException {
   }
   static notFound(code: ErrorCode, message: string) {
     return new AppError(404, code, message);
+  }
+  static forbidden(code: ErrorCode, message: string) {
+    return new AppError(403, code, message);
+  }
+  static conflict(code: ErrorCode, message: string, details?: Record<string, unknown>) {
+    return new AppError(409, code, message, details);
   }
   static rateLimited(retryAfter: number) {
     return new AppError(429, 'RATE_LIMITED', 'Too many requests, try again later', { retryAfter });

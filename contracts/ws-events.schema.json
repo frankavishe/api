@@ -40,13 +40,100 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {}
+        },
+        "envelope:new": {
+          "description": "Feature 002. Sent to device:{deviceId} for each envelope stored for that device. Same shape as openapi Envelope. The client decrypts, stores locally, then acks with POST /envelopes/ack. Clients also call GET /envelopes after every (re)connect, so a missed push is never lost.",
+          "$ref": "#/$defs/envelope"
+        },
+        "conversation:updated": {
+          "description": "Feature 002. Sent to user:{id} of every member when a conversation is created or its membership changes. A user who was removed gets { id, removed: true } instead.",
+          "oneOf": [
+            { "$ref": "#/$defs/conversation" },
+            {
+              "type": "object",
+              "required": ["id", "removed"],
+              "additionalProperties": false,
+              "properties": {
+                "id": { "type": "string", "format": "uuid" },
+                "removed": { "const": true }
+              }
+            }
+          ]
+        },
+        "typing": {
+          "description": "Feature 002. Relayed to user:{id} of the other conversation members. Ephemeral and never stored. Clients drop a 'start' after 5 s without a refresh.",
+          "type": "object",
+          "required": ["conversationId", "userId", "state"],
+          "additionalProperties": false,
+          "properties": {
+            "conversationId": { "type": "string", "format": "uuid" },
+            "userId": { "type": "string", "format": "uuid" },
+            "state": { "enum": ["start", "stop"] }
+          }
+        },
+        "prekeys:low": {
+          "description": "Feature 002. Sent to device:{deviceId} when its unused one-time prekeys drop below 10. The client uploads more with PUT /keys.",
+          "type": "object",
+          "required": ["count"],
+          "additionalProperties": false,
+          "properties": {
+            "count": { "type": "integer", "minimum": 0 }
+          }
         }
       }
     },
     "client-to-server": {
       "type": "object",
-      "description": "No client-to-server events in feature 001. Connection errors use Socket.IO connect_error with data.code in [UNAUTHORIZED, SESSION_REVOKED].",
-      "properties": {}
+      "description": "Connection errors use Socket.IO connect_error with data.code in [UNAUTHORIZED, SESSION_REVOKED].",
+      "properties": {
+        "typing": {
+          "description": "Feature 002. Send 'start' on the first keystroke and then at most every 3 s while typing; send 'stop' on send, clear or 5 s idle. Ignored if the sender is not a member. Rate-limited server side.",
+          "type": "object",
+          "required": ["conversationId", "state"],
+          "additionalProperties": false,
+          "properties": {
+            "conversationId": { "type": "string", "format": "uuid" },
+            "state": { "enum": ["start", "stop"] }
+          }
+        }
+      }
+    },
+    "envelope": {
+      "type": "object",
+      "required": ["id", "conversationId", "senderUserId", "senderDeviceId", "type", "ciphertext", "serverTimestamp"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "conversationId": { "type": "string", "format": "uuid" },
+        "senderUserId": { "type": "string", "format": "uuid" },
+        "senderDeviceId": { "type": "string", "format": "uuid" },
+        "type": { "enum": ["prekey", "whisper"] },
+        "ciphertext": { "type": "string", "contentEncoding": "base64" },
+        "serverTimestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "conversation": {
+      "type": "object",
+      "required": ["id", "type", "createdAt", "members"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "type": { "enum": ["direct", "group"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "members": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["userId", "role", "joinedAt"],
+            "additionalProperties": false,
+            "properties": {
+              "userId": { "type": "string", "format": "uuid" },
+              "role": { "enum": ["admin", "member"] },
+              "joinedAt": { "type": "string", "format": "date-time" }
+            }
+          }
+        }
+      }
     }
   }
 }
