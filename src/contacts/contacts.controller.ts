@@ -12,6 +12,10 @@ import { UserPresenter } from '../users/user.presenter.js';
 const phone = z.string().regex(E164_PATTERN, 'Phone must be in international format');
 const discoverSchema = z.strictObject({ phones: z.array(phone).min(1).max(1000) });
 const lookupSchema = z.object({ phone });
+const usersQuery = z.object({
+  // `?id=a&id=b` arrives as an array, a single one as a string.
+  id: z.preprocess((v) => (v === undefined ? undefined : [v].flat()), z.array(z.uuid()).min(1).max(64)),
+});
 
 const byName = [{ displayName: { sort: 'asc', nulls: 'last' } }, { phoneE164: 'asc' }] as const;
 
@@ -44,6 +48,20 @@ export class ContactsService {
   findByPhone(phoneE164: string): Promise<User | null> {
     return this.prisma.user.findUnique({ where: { phoneE164 } });
   }
+
+  /** The users among `ids` the caller may see: themselves, contacts and current fellow members. */
+  visible(callerId: string, ids: string[]): Promise<User[]> {
+    return this.prisma.user.findMany({
+      where: {
+        id: { in: [...new Set(ids)] },
+        OR: [
+          { id: callerId },
+          { contactOf: { some: { ownerId: callerId } } },
+          { memberships: { some: { conversation: { members: { some: { userId: callerId } } } } } },
+        ],
+      },
+    });
+  }
 }
 
 @Controller()
@@ -68,6 +86,16 @@ export class ContactsController {
   @Get('contacts')
   async list(@CurrentAuth() auth: AccessClaims) {
     const users = await this.contacts.list(auth.userId);
+    return users.map((u) => this.presenter.toPublic(u));
+  }
+
+  @Get('users')
+  async users(
+    @CurrentAuth() auth: AccessClaims,
+    @Query({ schema: usersQuery }) query: z.infer<typeof usersQuery>,
+  ) {
+    await this.limits.consume(`users:${auth.deviceId}`, 120, 3600);
+    const users = await this.contacts.visible(auth.userId, query.id);
     return users.map((u) => this.presenter.toPublic(u));
   }
 

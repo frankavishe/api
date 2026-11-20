@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Chat App API
-  version: 0.2.0
+  version: 0.3.0
   description: |
     REST contract for feature 001 (sign-in, devices, profile, contacts) and
     feature 002 (end-to-end encrypted messaging: keys, conversations, messages).
@@ -273,6 +273,38 @@ paths:
               schema:
                 type: array
                 items: { $ref: '#/components/schemas/PublicUser' }
+
+  /users:
+    get:
+      tags: [contacts]
+      operationId: getUsers
+      description: |
+        Public profiles by id, used to name group members who aren't contacts.
+        Only users the caller may see are returned: the caller, their contacts and anyone
+        who shares a conversation with them. Other ids are left out without an error.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: User ids (repeatable, 1-64).
+          style: form
+          explode: true
+          schema:
+            type: array
+            minItems: 1
+            maxItems: 64
+            items: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The visible users among the requested ids, in no particular order.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/PublicUser' }
+        '400': { $ref: '#/components/responses/Error' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
 
   /users/lookup:
     get:
