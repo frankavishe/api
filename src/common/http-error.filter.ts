@@ -12,7 +12,7 @@ import { AppError, type ErrorBody, type ErrorCode } from './errors.js';
 const STATUS_CODES: Record<number, ErrorCode> = {
   400: 'VALIDATION_FAILED',
   401: 'UNAUTHORIZED',
-  404: 'USER_NOT_FOUND',
+  404: 'NOT_FOUND',
   413: 'FILE_TOO_LARGE',
   415: 'UNSUPPORTED_MEDIA_TYPE',
   429: 'RATE_LIMITED',

@@ -22,6 +22,8 @@ export type ErrorCode =
   | 'KEYS_NOT_UPLOADED'
   | 'GROUP_TOO_LARGE'
   | 'PAYLOAD_TOO_LARGE'
+  /** Unknown route or other 404 without a more specific code. */
+  | 'NOT_FOUND'
   | 'INTERNAL';
 
 export interface ErrorBody {

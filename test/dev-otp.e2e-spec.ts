@@ -13,4 +13,9 @@ describe('Dev OTP endpoint', () => {
     const res = await t.http.get('/v1/dev/last-otp').query({ phone: '+255710000000' }).expect(404);
     expect(res.body.message).toMatch(/Cannot GET/);
   });
+
+  it('reports unknown routes as NOT_FOUND, not USER_NOT_FOUND', async () => {
+    const res = await t.http.get('/v1/no-such-route').expect(404);
+    expect(res.body.code).toBe('NOT_FOUND');
+  });
 });
